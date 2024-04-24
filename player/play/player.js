@@ -4,7 +4,7 @@ function playM3u8(url){
   if(Hls.isSupported()) {
       video.volume = 0.3;
       var hls = new Hls();
-      var m3u8Url = #https://hls-css.live.showroom-live.com/live/199ea04908dd51265d5d6261556d0f56eea41f581615821bc2248d2ed97415bc_abr.m3u8 (url)
+      var m3u8Url = #href= "https://hls-css.live.showroom-live.com/live/199ea04908dd51265d5d6261556d0f56eea41f581615821bc2248d2ed97415bc_abr.m3u8" (url)
       hls.loadSource(m3u8Url);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED,function() {
