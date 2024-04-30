@@ -1,64 +1,67 @@
-var video = document.getElementById('video');
+document.addEventListener('DOMContentLoaded', () => {
+	const source = 'https://hls-css.live.showroom-live.com/live/5a9177bd31b234eddfb2cd21f64902b1e447bef92223955adc3d0a9ffbd1614c_abr.m3u8';
+	const video = document.querySelector('video');
 
-function playM3u8(url){
-  if(Hls.isSupported()) {
-      video.volume = 0.3;
-      var hls = new Hls();
-      var m3u8Url = decodeURIComponent(url)
-      hls.loadSource(m3u8Url);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED,function() {
-        video.play();
-      });
-      document.title = url
+	const defaultOptions = {};
+
+	if (!Hls.isSupported()) {
+		video.src = source;
+		var player = new Plyr(video, defaultOptions);
+	} else {
+		// For more Hls.js options, see https://github.com/dailymotion/hls.js
+		const hls = new Hls();
+		hls.loadSource(source);
+
+		// From the m3u8 playlist, hls parses the manifest and returns
+                // all available video qualities. This is important, in this approach,
+    	        // we will have one source on the Plyr player.
+    	       hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+
+	      	     // Transform available levels into an array of integers (height values).
+	      	    const availableQualities = hls.levels.map((l) => l.height)
+	      	availableQualities.unshift(0) //prepend 0 to quality array
+
+	      	    // Add new qualities to option
+		    defaultOptions.quality = {
+		    	default: 0, //Default - AUTO
+		        options: availableQualities,
+		        forced: true,        
+		        onChange: (e) => updateQuality(e),
+		    }
+		    // Add Auto Label 
+		    defaultOptions.i18n = {
+		    	qualityLabel: {
+		    		0: 'Auto',
+		    	},
+		    }
+
+		    hls.on(Hls.Events.LEVEL_SWITCHED, function (event, data) {
+	          var span = document.querySelector(".plyr__menu__container [data-plyr='quality'][value='0'] span")
+	          if (hls.autoLevelEnabled) {
+	            span.innerHTML = `AUTO (${hls.levels[data.level].height}p)`
+	          } else {
+	            span.innerHTML = `AUTO`
+	          }
+	        })
+    
+             // Initialize new Plyr player with quality options
+		     var player = new Plyr(video, defaultOptions);
+         });	
+
+	hls.attachMedia(video);
+    	window.hls = hls;		 
     }
-	else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-		video.src = url;
-		video.addEventListener('canplay',function() {
-		  video.play();
-		});
-		video.volume = 0.3;
-		document.title = url;
-  	}
-}
 
-function playPause() {
-    video.paused?video.play():video.pause();
-}
-
-function volumeUp() {
-    if(video.volume <= 0.9) video.volume+=0.1;
-}
-
-function volumeDown() {
-    if(video.volume >= 0.1) video.volume-=0.1;
-}
-
-function seekRight() {
-    video.currentTime+=5;
-}
-
-function seekLeft() {
-    video.currentTime-=5;
-}
-
-function vidFullscreen() {
-    if (video.requestFullscreen) {
-      video.requestFullscreen();
-  } else if (video.mozRequestFullScreen) {
-      video.mozRequestFullScreen();
-  } else if (video.webkitRequestFullscreen) {
-      video.webkitRequestFullscreen();
+    function updateQuality(newQuality) {
+      if (newQuality === 0) {
+        window.hls.currentLevel = -1; //Enable AUTO quality if option.value = 0
+      } else {
+        window.hls.levels.forEach((level, levelIndex) => {
+          if (level.height === newQuality) {
+            console.log("Found quality match with " + newQuality);
+            window.hls.currentLevel = levelIndex;
+          }
+        });
+      }
     }
-}
-
-playM3u8(window.location.href.split("#")[1])
-$(window).on('load', function () {
-    $('#video').on('click', function(){this.paused?this.play():this.pause();});
-    Mousetrap.bind('space', playPause);
-    Mousetrap.bind('up', volumeUp);
-    Mousetrap.bind('down', volumeDown);
-    Mousetrap.bind('right', seekRight);
-    Mousetrap.bind('left', seekLeft);
-    Mousetrap.bind('f', vidFullscreen);
 });
